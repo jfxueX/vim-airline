@@ -161,10 +161,11 @@ function! s:update_branch()
 endfunction
 
 function! airline#extensions#branch#update_untracked_config(file, vcs)
-  if !has_key(s:vcs_config[a:vcs].untracked, a:file)
+  let x = get(s:vcs_config[a:vcs].untracked, a:file, v:none)
+  if type(x) == type(v:none)
     return
-  elseif s:vcs_config[a:vcs].untracked[a:file] != b:buffer_vcs_config[a:vcs].untracked
-    let b:buffer_vcs_config[a:vcs].untracked = s:vcs_config[a:vcs].untracked[a:file]
+  elseif x != b:buffer_vcs_config[a:vcs].untracked
+    let b:buffer_vcs_config[a:vcs].untracked = x
     unlet! b:airline_head
   endif
 endfunction
@@ -177,13 +178,15 @@ function! s:update_untracked()
 
   let needs_update = 1
   for vcs in keys(s:vcs_config)
-    if file =~ s:vcs_config[vcs].exclude
-      " Skip check for files that live in the exclude directory
-      let needs_update = 0
-    endif
     if has_key(s:vcs_config[vcs].untracked, file)
       let needs_update = 0
       call airline#extensions#branch#update_untracked_config(file, vcs)
+    endif
+    if needs_update
+      if file =~ s:vcs_config[vcs].exclude
+        " Skip check for files that live in the exclude directory
+        let needs_update = 0
+      endif
     endif
   endfor
 

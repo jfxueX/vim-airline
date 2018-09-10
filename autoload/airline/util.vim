@@ -31,11 +31,11 @@ function! airline#util#wrap(text, minwidth)
 endfunction
 
 function! airline#util#append(text, minwidth)
-  if a:minwidth > 0 && winwidth(0) < a:minwidth
+  if empty(a:text) || (a:minwidth > 0 && winwidth(0) < a:minwidth)
     return ''
   endif
   let prefix = s:spc == "\ua0" ? s:spc : s:spc.s:spc
-  return empty(a:text) ? '' : prefix.g:airline_left_alt_sep.s:spc.a:text
+  return prefix . g:airline_left_alt_sep . s:spc . a:text
 endfunction
 
 function! airline#util#warning(msg)
@@ -97,11 +97,33 @@ function! airline#util#strchars(str)
   endif
 endfunction
 
+let s:ignore_buf_pat = ""
+let s:ignore_buf_max_name_len = 0
+
 function! airline#util#ignore_buf(name)
-  let pat = '\c\v'. get(g:, 'airline#ignore_bufadd_pat', '').
-        \ get(g:, 'airline#extensions#tabline#ignore_bufadd_pat', 
-        \ 'gundo|undotree|vimfiler|tagbar|nerd_tree|startify')
-  return match(a:name, pat) > -1
+  if empty(s:ignore_buf_pat)
+    let bnames = ['gundo', 'undotree', 'vimfiler', 'tagbar', 'nerd_tree', 'startify']
+    let bnames += split(get(g:, 'airline#ignore_bufadd_pat', ''), '|')
+    let bnames += split(get(g:, 'airline#extensions#tabline#ignore_bufadd_pat', ''), '|')
+    for bname in bnames
+      let len = strlen(bname)
+      if len > s:ignore_buf_max_name_len
+        let s:ignore_buf_max_name_len = len
+      endif
+    endfor
+    let s:ignore_buf_pat = '\c\v' . join(bnames, '|')
+  endif
+
+  if a:name[s:ignore_buf_max_name_len:s:ignore_buf_max_name_len] !=# ''
+    return 0
+  endif
+  let ret = match(a:name, s:ignore_buf_pat) > -1
+  return ret
+
+  "let pat = '\c\v'. get(g:, 'airline#ignore_bufadd_pat', '').
+  "      \ get(g:, 'airline#extensions#tabline#ignore_bufadd_pat', 
+  "      \ 'gundo|undotree|vimfiler|tagbar|nerd_tree|startify')
+  "return match(a:name, pat) > -1
 endfunction
 
 function! airline#util#has_fugitive()

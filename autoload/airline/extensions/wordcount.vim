@@ -38,6 +38,8 @@ function! airline#extensions#wordcount#apply(...)
 endfunction
 
 function! airline#extensions#wordcount#init(ext)
-  call a:ext.add_statusline_func('airline#extensions#wordcount#apply')
-  autocmd BufReadPost,CursorMoved,CursorMovedI * call s:wordcount_update()
+  if match(&ft, get(g:, 'airline#extensions#wordcount#filetypes')) > -1
+    call a:ext.add_statusline_func('airline#extensions#wordcount#apply')
+    autocmd BufReadPost,CursorMoved,CursorMovedI * call s:wordcount_update()
+  endif
 endfunction

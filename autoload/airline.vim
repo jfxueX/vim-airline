@@ -7,6 +7,7 @@ let g:airline_statusline_funcrefs = get(g:, 'airline_statusline_funcrefs', [])
 
 let s:sections = ['a','b','c','gutter','x','y','z', 'error', 'warning']
 let s:inactive_funcrefs = []
+let s:normal_mode = ''
 
 function! airline#add_statusline_func(name)
   call airline#add_statusline_funcref(function(a:name))
@@ -135,8 +136,9 @@ function! s:invoke_funcrefs(context, funcrefs)
 endfunction
 
 function! airline#statusline(winnr)
-  if has_key(s:contexts, a:winnr)
-    return '%{airline#check_mode('.a:winnr.')}'.s:contexts[a:winnr].line
+  let context = get(s:contexts, a:winnr, v:none)
+  if type(context) != type(v:none)
+    return '%{airline#check_mode('.a:winnr.')}' . context.line
   endif
 
   " in rare circumstances this happens...see #276
@@ -146,40 +148,53 @@ endfunction
 function! airline#check_mode(winnr)
   let context = s:contexts[a:winnr]
 
+  " cache for optimize
+  if empty(s:normal_mode)
+    let s:normal_mode = g:airline_mode_map.n
+  endif
+
   if get(w:, 'airline_active', 1)
-    let l:m = mode()
-    if l:m ==# "i"
-      let l:mode = ['insert']
-    elseif l:m ==# "R"
-      let l:mode = ['replace']
-    elseif l:m =~# '\v(v|V||s|S|)'
-      let l:mode = ['visual']
-    elseif l:m ==# "t"
-      let l:mode = ['terminal']
-    elseif l:m ==# "c"
-      let l:mode = ['commandline']
-    else
-      let l:mode = ['normal']
-    endif
-    let w:airline_current_mode = get(g:airline_mode_map, l:m, l:m)
+    while 1
+      let l:m = mode()
+      if l:m ==# "n"
+        let l:mode = ['normal']
+        let w:airline_current_mode = s:normal_mode
+        break
+      elseif l:m ==# "i"
+        let l:mode = ['insert']
+      elseif l:m ==# "R"
+        let l:mode = ['replace']
+      elseif l:m =~# '\v(v|V||s|S|)'
+        let l:mode = ['visual']
+      elseif l:m ==# "t"
+        let l:mode = ['terminal']
+      elseif l:m ==# "c"
+        let l:mode = ['commandline']
+      else
+        let l:mode = ['normal']
+      endif
+
+      let w:airline_current_mode = get(g:airline_mode_map, l:m, l:m)
+      break
+    endwhile
   else
     let l:mode = ['inactive']
     let w:airline_current_mode = get(g:airline_mode_map, '__')
   endif
 
-  if g:airline_detect_modified && &modified
+  if &modified && g:airline_detect_modified
     call add(l:mode, 'modified')
   endif
 
-  if g:airline_detect_paste && &paste
+  if &paste && g:airline_detect_paste
     call add(l:mode, 'paste')
   endif
 
-  if g:airline_detect_crypt && exists("+key") && !empty(&key)
+  if !empty(&key) && g:airline_detect_crypt && exists("+key")
     call add(l:mode, 'crypt')
   endif
 
-  if g:airline_detect_spell && &spell
+  if &spell && g:airline_detect_spell
     call add(l:mode, 'spell')
   endif
 

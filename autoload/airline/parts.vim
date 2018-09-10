@@ -88,13 +88,15 @@ endfunction
 function! airline#parts#readonly()
   " only consider regular buffers (e.g. ones that represent actual files, 
   " but not special ones like e.g. NERDTree)
-  if !empty(&buftype) || airline#util#ignore_buf(bufname('%'))
+  let _bufname = bufname('%')
+  if !empty(&buftype) || airline#util#ignore_buf(_bufname)
     return ''
   endif
-  if &readonly && !filereadable(bufname('%'))
+  let _readonly = &readonly
+  if _readonly && !filereadable(_bufname)
     return '[noperm]'
   else
-    return &readonly ? g:airline_symbols.readonly : ''
+    return _readonly ? g:airline_symbols.readonly : ''
   endif
 endfunction
 
@@ -105,10 +107,13 @@ endfunction
 function! airline#parts#ffenc()
   let expected = get(g:, 'airline#parts#ffenc#skip_expected_string', '')
   let bomb     = &l:bomb ? '[BOM]' : ''
-  let ff       = strlen(&ff) ? '['.&ff.']' : ''
+  let ff       = &ff
+  if strlen(ff)
+    let ff = '[' .ff. ']'
+  endif
   if expected is# &fenc.bomb.ff
     return ''
   else
-    return &fenc.bomb.ff
+    return expected
   endif
 endfunction

@@ -43,7 +43,8 @@ function! s:get_hunks_empty()
 endfunction
 
 function! s:get_hunks()
-  if !exists('b:source_func') || get(b:, 'source_func', '') is# 's:get_hunks_empty'
+  let source_func = get(b:, 'source_func', v:none)
+  if type(source_func) == type(v:none) || source_func is# 's:get_hunks_empty'
     if get(g:, 'loaded_signify') && sy#buffer_is_active()
       let b:source_func = 's:get_hunks_signify'
     elseif exists('*GitGutterGetHunkSummary')
@@ -52,7 +53,7 @@ function! s:get_hunks()
       let b:source_func = 's:get_hunks_changes'
     elseif exists('*quickfixsigns#vcsdiff#GetHunkSummary')
       let b:source_func = 'quickfixsigns#vcsdiff#GetHunkSummary'
-    else
+    elseif type(source_func) == type(v:none)
       let b:source_func = 's:get_hunks_empty'
     endif
   endif
@@ -64,21 +65,25 @@ function! airline#extensions#hunks#get_hunks()
     return ''
   endif
   " Cache values, so that it isn't called too often
-  if exists("b:airline_hunks") &&
-    \ get(b:,  'airline_changenr', 0) == b:changedtick &&
-    \ winwidth(0) == get(s:, 'airline_winwidth', 0) &&
-    \ get(b:, 'source_func', '') isnot# 's:get_hunks_signify' &&
-    \ get(b:, 'source_func', '') isnot# 's:get_hunks_gitgutter' &&
-    \ get(b:, 'source_func', '') isnot# 's:get_hunks_empty' &&
-    \ get(b:, 'source_func', '') isnot# 's:get_hunks_changes'
-    return b:airline_hunks
+  let win_width = winwidth(0)
+  let airline_hunks = get(b:, 'airline_hunks', v:none)
+  if type(airline_hunks) != type(v:none) && airline_hunks == b:changedtick &&
+    \ win_width == get(s:, 'airline_winwidth', 0)
+    let source_func = get(b:, 'source_func', '')
+    if source_func isnot# 's:get_hunks_signify' &&
+          \ source_func isnot# 's:get_hunks_gitgutter' &&
+          \ source_func isnot# 's:get_hunks_empty' &&
+          \ source_func isnot# 's:get_hunks_changes'
+      return b:airline_hunks
+    endif
   endif
   let hunks = s:get_hunks()
   let string = ''
   if !empty(hunks)
     for i in [0, 1, 2]
-      if (s:non_zero_only == 0 && winwidth(0) > 100) || hunks[i] > 0
-        let string .= printf('%s%s ', s:hunk_symbols[i], hunks[i])
+      if (s:non_zero_only == 0 && win_width > 100) || hunks[i] > 0
+        "let string .= printf('%s%s ', s:hunk_symbols[i], hunks[i])
+        let string .= s:hunk_symbols[i] . hunks[i] . ' '
       endif
     endfor
   endif
